@@ -1,5 +1,5 @@
 {
-    "name": "iamnostone-dxf-viewer",
+    "name": "iamnotstone-dxf-viewer",
     "version": "1.0.36",
     "description": "fork from https://github.com/vagran/dxf-viewer JavaScript DXF file viewer",
     "main": "src/index.js",
