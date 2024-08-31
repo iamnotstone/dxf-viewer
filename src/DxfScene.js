@@ -1039,7 +1039,8 @@ export class DxfScene {
         if (!result) {
             result = []
         }
-        for (const v of loop) {
+        let loopVertices = loop.vertices || loop
+        for (const v of loopVertices) {
             if (transform) {
                 v.applyMatrix3(transform)
             }
@@ -1109,7 +1110,8 @@ export class DxfScene {
             const indices = earcut(coords, holes)
             const vertices = []
             for (const loop of filteredBoundaryLoops) {
-                vertices.push(...loop)
+                let loopVertices = loop.vertices || loop
+                vertices.push(...loopVertices)
             }
             yield new Entity({
                 type: Entity.Type.TRIANGLES,
