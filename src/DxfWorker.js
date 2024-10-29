@@ -32,13 +32,13 @@ export class DxfWorker {
      * @param options Viewer options. See DxfViewer.DefaultOptions.
      * @param progressCbk {Function?} (phase, processedSize, totalSize)
      */
-    async Load(url, fonts, options, progressCbk) {
+    async Load(url, fonts, options, progressCbk, preparsed = false) {
         if (this.worker) {
             return this._SendRequest(DxfWorker.WorkerMsg.LOAD,
                                      { url, fonts, options: this._CloneOptions(options) },
-                                     progressCbk)
+                                     progressCbk, preparsed)
         } else {
-            return this._Load(url, fonts, options, progressCbk)
+            return this._Load(url, fonts, options, progressCbk, preparsed)
         }
     }
 
@@ -58,10 +58,15 @@ export class DxfWorker {
             console.log("Message with bad signature", msg)
             return
         }
-        const resp = {seq: msg.seq, type: msg.type, signature: MSG_SIGNATURE}
+        const resp = {
+          seq: msg.seq, 
+          type: msg.type, 
+          signature: MSG_SIGNATURE, 
+          preparsed: msg.preparsed
+        }
         const transfers = []
         try {
-            resp.data = await this._ProcessRequestMessage(msg.type, msg.data, transfers, msg.seq)
+            resp.data = await this._ProcessRequestMessage(msg.type, msg.data, transfers, msg.seq, msg.preparsed)
         } catch (error) {
             console.error(error)
             resp.error = String(error)
@@ -74,14 +79,16 @@ export class DxfWorker {
         }
     }
 
-    async _ProcessRequestMessage(type, data, transfers, seq) {
+    async _ProcessRequestMessage(type, data, transfers, seq, preparsed = false) {
         switch (type) {
         case DxfWorker.WorkerMsg.LOAD: {
             const {scene, dxf} = await this._Load(
                 data.url,
                 data.fonts,
                 data.options,
-                (phase, size, totalSize) => this._SendProgress(seq, phase, size, totalSize))
+                (phase, size, totalSize) => this._SendProgress(seq, phase, size, totalSize),
+                preparsed
+            )
             transfers.push(scene.vertices)
             transfers.push(scene.indices)
             transfers.push(scene.transforms)
@@ -126,11 +133,11 @@ export class DxfWorker {
         reqs.forEach(req => req.SetError(error))
     }
 
-    async _SendRequest(type, data = null, progressCbk = null) {
+    async _SendRequest(type, data = null, progressCbk = null, preparsed = false) {
         const seq = this.reqSeq++
         const req = new DxfWorker.Request(seq, progressCbk)
         this.requests.set(seq, req)
-        this.worker.postMessage({ seq, type, data, signature: MSG_SIGNATURE})
+        this.worker.postMessage({ seq, type, data, preparsed, signature: MSG_SIGNATURE})
         return await req.GetResponse()
     }
 
@@ -144,19 +151,27 @@ export class DxfWorker {
     }
 
     /** @return {Object} DxfScene serialized scene. */
-    async _Load(url, fonts, options, progressCbk) {
+    async _Load(url, fonts, options, progressCbk, preparsed = false) {
         let fontFetchers
         if (fonts) {
             fontFetchers = this._CreateFontFetchers(fonts, progressCbk)
         } else {
             fontFetchers = []
         }
-        const dxf = await new DxfFetcher(url, options.fileEncoding).Fetch(progressCbk)
+
+        let t0 = performance.now()
+
+        const dxf = await new DxfFetcher(url, options.fileEncoding, preparsed).Fetch(progressCbk)
+        let t1 = performance.now()
+        console.log('parse dxf string costs:', t1 - t0)
         if (progressCbk) {
             progressCbk("prepare", 0, null)
         }
         const dxfScene = new DxfScene(options)
+        let t2 = performance.now()
         await dxfScene.Build(dxf, fontFetchers)
+        let t3 = performance.now()
+        console.log('build scene costs:', t3 - t2)
         return {scene: dxfScene.scene, dxf: options.retainParsedDxf === true ? dxf : undefined }
     }
 

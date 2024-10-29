@@ -1,5 +1,6 @@
 import DxfArrayScanner from "./DxfArrayScanner.js";
 import AUTO_CAD_COLOR_INDEX from "./AutoCadColorIndex.js";
+import {encode} from "@msgpack/msgpack"
 
 import Face from "./entities/3dface.js";
 import Arc from "./entities/arc.js";
@@ -67,9 +68,15 @@ DxfParser.prototype.registerEntityHandler = function(handlerType) {
     this._entityHandlers[handlerType.ForEntityName] = instance;
 }
 
-DxfParser.prototype.parseSync = function(source) {
+DxfParser.prototype.parseSync = function(source, encoding = false) {
     if(typeof(source) === 'string') {
-        return this._parse(source);
+        let parsed = this._parse(source);
+
+        if(encoding)
+            return encode(parsed)
+        else
+            return parsed
+
     }else {
         console.error('Cannot read DXF source of type `' + typeof(source));
         return null;
