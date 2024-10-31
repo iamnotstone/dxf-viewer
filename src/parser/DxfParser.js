@@ -73,7 +73,10 @@ DxfParser.prototype.parseSync = function(source, encoding = false) {
         let parsed = this._parse(source);
 
         if(encoding)
-            return encode(parsed)
+            return {
+              result: parsed,
+              encoded: encode(parsed)
+            }
         else
             return parsed
 

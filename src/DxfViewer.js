@@ -35,13 +35,25 @@ export class DxfViewer {
         this.scene = new three.Scene()
 
         try {
-            this.renderer = new three.WebGLRenderer({
-                alpha: options.canvasAlpha,
-                premultipliedAlpha: options.canvasPremultipliedAlpha,
-                antialias: options.antialias,
-                depth: false,
-                preserveDrawingBuffer: options.preserveDrawingBuffer
-            })
+            if(options.gl){
+                console.log('gl', three.REVISION) 
+                this.renderer = new three.WebGLRenderer({
+                    context: options.gl,
+                    alpha: options.canvasAlpha,
+                    premultipliedAlpha: options.canvasPremultipliedAlpha,
+                    antialias: options.antialias,
+                    depth: false,
+                    preserveDrawingBuffer: options.preserveDrawingBuffer
+                })
+                console.log('gl1') 
+            }else
+                this.renderer = new three.WebGLRenderer({
+                    alpha: options.canvasAlpha,
+                    premultipliedAlpha: options.canvasPremultipliedAlpha,
+                    antialias: options.antialias,
+                    depth: false,
+                    preserveDrawingBuffer: options.preserveDrawingBuffer
+                })
         } catch (e) {
             console.log("Failed to create renderer: " + e)
             this.renderer = null
@@ -52,7 +64,8 @@ export class DxfViewer {
          * buffers layout. Also do not waste CPU on sorting which we do not need anyway.
          */
         renderer.sortObjects = false
-        renderer.setPixelRatio(window.devicePixelRatio)
+        if(!options.gl)
+            renderer.setPixelRatio(window.devicePixelRatio)
 
         const camera = this.camera = new three.OrthographicCamera(-1, 1, 1, -1, 0.1, 2);
         camera.position.z = 1
@@ -83,8 +96,10 @@ export class DxfViewer {
         domContainer.style.display = "block"
         if (options.autoResize) {
             this.canvas.style.position = "absolute"
-            this.resizeObserver = new ResizeObserver(entries => this._OnResize(entries[0]))
-            this.resizeObserver.observe(domContainer)
+            if(!options.gl){
+                this.resizeObserver = new ResizeObserver(entries => this._OnResize(entries[0]))
+                this.resizeObserver.observe(domContainer)
+            }
         }
         domContainer.appendChild(this.canvas)
 
@@ -170,7 +185,7 @@ export class DxfViewer {
      * @param workerFactory {?Function} Factory for worker creation. The worker script should
      *  invoke DxfViewer.SetupWorker() function.
      */
-    async Load({url, fonts = null, progressCbk = null, workerFactory = null}) {
+    async Load({url, fonts = null, progressCbk = null, workerFactory = null, preparsed = false}) {
         if (url === null || url === undefined) {
             throw new Error("`url` parameter is not specified")
         }
@@ -180,7 +195,7 @@ export class DxfViewer {
         this.Clear()
 
         this.worker = new DxfWorker(workerFactory ? workerFactory() : null)
-        const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk)
+        const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk, preparsed)
         await this.worker.Destroy()
         this.worker = null
         this.parsedDxf = dxf
@@ -439,7 +454,8 @@ export class DxfViewer {
     }
 
     _Emit(eventName, data = null) {
-        this.canvas.dispatchEvent(new CustomEvent(EVENT_NAME_PREFIX + eventName, { detail: data }))
+        if(!this.options.gl)
+            this.canvas.dispatchEvent(new CustomEvent(EVENT_NAME_PREFIX + eventName, { detail: data }))
     }
 
     _Message(message, level = MessageLevel.INFO) {
@@ -500,6 +516,7 @@ export class DxfViewer {
 
     _CreateSimpleColorMaterial(instanceType = InstanceType.NONE) {
         const shaders = this._GenerateShaders(instanceType, false)
+
         return new three.RawShaderMaterial({
             uniforms: {
                 color: {
@@ -836,7 +853,8 @@ class Batch {
             this.key.geometryType === BatchingKey.GeometryType.POINT_INSTANCE ?
                 this.viewer._GetSimplePointMaterial : this.viewer._GetSimpleColorMaterial
 
-        const material = materialFactory.call(this.viewer, this.viewer._TransformColor(color),
+        let material = undefined;
+        material = materialFactory.call(this.viewer, this.viewer._TransformColor(color),
                                               instanceBatch?.GetInstanceType() ?? InstanceType.NONE)
 
         let objConstructor
@@ -858,17 +876,21 @@ class Batch {
             throw new Error("Unexpected geometry type:" + this.key.geometryType)
         }
 
+        let _this = this
         function CreateObject(vertices, indices) {
             const geometry = instanceBatch ?
                 new three.InstancedBufferGeometry() : new three.BufferGeometry()
+
+            // console.log('vertices:', vertices.array)
             geometry.setAttribute("position", vertices)
             instanceBatch?._SetInstanceTransformAttribute(geometry)
             if (indices) {
                 geometry.setIndex(indices)
             }
             const obj = new objConstructor(geometry, material)
-            obj.frustumCulled = false
+
             obj.matrixAutoUpdate = false
+            obj.frustumCulled = false
             obj._dxfViewerLayer = layer
             return obj
         }

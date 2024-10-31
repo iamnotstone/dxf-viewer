@@ -159,19 +159,17 @@ export class DxfWorker {
             fontFetchers = []
         }
 
-        let t0 = performance.now()
+        let dxf = undefined
+        if(typeof url === 'string')
+            dxf = await new DxfFetcher(url, options.fileEncoding, preparsed).Fetch(progressCbk)
+        else
+            dxf = url
 
-        const dxf = await new DxfFetcher(url, options.fileEncoding, preparsed).Fetch(progressCbk)
-        let t1 = performance.now()
-        console.log('parse dxf string costs:', t1 - t0)
         if (progressCbk) {
             progressCbk("prepare", 0, null)
         }
         const dxfScene = new DxfScene(options)
-        let t2 = performance.now()
         await dxfScene.Build(dxf, fontFetchers)
-        let t3 = performance.now()
-        console.log('build scene costs:', t3 - t2)
         return {scene: dxfScene.scene, dxf: options.retainParsedDxf === true ? dxf : undefined }
     }
 
