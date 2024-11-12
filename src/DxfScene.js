@@ -1966,6 +1966,9 @@ export class DxfScene {
         }
     }
 
+
+
+    //todo: 无论是polyline还是lineSegments都需要把顶点加进去。
     /**
      * @param entity {Entity}
      * @param blockCtx {?BlockContext}
@@ -2174,6 +2177,8 @@ export class DxfScene {
 
     /** @param v {{x,y}} Vertex to extend bounding box with and set origin. */
     _UpdateBounds(v) {
+  
+
         if (this.bounds === null) {
             this.bounds = { minX: v.x, maxX: v.x, minY: v.y, maxY: v.y }
         } else {

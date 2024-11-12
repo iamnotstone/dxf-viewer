@@ -7,6 +7,8 @@ import {OrbitControls} from "./OrbitControls.js"
 import {RBTree} from "./RBTree.js"
 
 
+// todo: 应用viewPort中的第一个视角为初始化视角
+
 /** Level in "message" events. */
 const MessageLevel = Object.freeze({
     INFO: "info",
@@ -36,7 +38,6 @@ export class DxfViewer {
 
         try {
             if(options.gl){
-                console.log('gl', three.REVISION) 
                 this.renderer = new three.WebGLRenderer({
                     context: options.gl,
                     alpha: options.canvasAlpha,
@@ -45,7 +46,6 @@ export class DxfViewer {
                     depth: false,
                     preserveDrawingBuffer: options.preserveDrawingBuffer
                 })
-                console.log('gl1') 
             }else
                 this.renderer = new three.WebGLRenderer({
                     alpha: options.canvasAlpha,
@@ -492,6 +492,7 @@ export class DxfViewer {
             return
         }
         const objects = new Batch(this, scene, batch).CreateObjects()
+
 
         for (const obj of objects) {
             this.scene.add(obj)
