@@ -1,6 +1,6 @@
 {
     "name": "iamnotstone-dxf-viewer",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "fork from https://github.com/vagran/dxf-viewer JavaScript DXF file viewer",
     "main": "src/index.js",
     "author": "iamnotstone",
@@ -8,7 +8,7 @@
     "repository": "https://github.com/iamnotstone/dxf-viewer",
     "type": "module",
     "scripts": {
-      "deploy": "npm version patch && npm run build && npm publish && git push origin master --tags"
+        "deploy": "npm version patch && npm run build && npm publish && git push origin master --tags"
     },
     "keywords": [
         "dxf",
