@@ -7,6 +7,9 @@
     "license": "MPL-2.0",
     "repository": "https://github.com/iamnotstone/dxf-viewer",
     "type": "module",
+    "scripts": {
+      "deploy": "npm version patch && npm run build && npm publish && git push origin master --tags"
+    },
     "keywords": [
         "dxf",
         "viewer",
