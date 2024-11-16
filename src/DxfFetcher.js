@@ -14,8 +14,9 @@ export class DxfFetcher {
         const response = await fetch(this.url)
 
 
-        if(this.preparsed)
+        if(this.preparsed){
             return decode(await response.arrayBuffer())
+        }
         else{
             const totalSize = +response.headers.get('Content-Length')
     

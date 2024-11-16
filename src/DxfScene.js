@@ -8,6 +8,7 @@ import dimStyleCodes from "./parser/DimStyleCodes.js"
 import { LinearDimension } from "./LinearDimension.js"
 import { HatchCalculator, HatchStyle } from "./HatchCalculator.js"
 import { LookupPattern, Pattern } from "./Pattern.js"
+import {encode} from "@msgpack/msgpack"
 import "./patterns/index.js"
 import earcut from "earcut"
 
@@ -76,6 +77,8 @@ export class DxfScene {
         if (options) {
             Object.assign(this.options, options.sceneOptions)
         }
+
+        this.costs = {}
 
         /* Scene origin. All input coordinates are made local to this point to minimize precision
         * loss.
@@ -152,6 +155,11 @@ export class DxfScene {
         this.hasMissingChars = false
         await this._FetchFonts(dxf)
 
+
+        let t0 = performance.now()
+
+
+
         /* Scan all entities to analyze block usage statistics. */
         for (const entity of dxf.entities) {
             if (!this._FilterEntity(entity)) {
@@ -169,7 +177,11 @@ export class DxfScene {
                 }
             }
         }
+        let t1 = performance.now()
 
+        console.log('scan all entities: ', t1 - t0)
+
+        t0 = performance.now()
         for (const block of this.blocks.values()) {
             if (block.data.hasOwnProperty("entities")) {
                 const blockCtx = block.DefinitionContext()
@@ -184,8 +196,11 @@ export class DxfScene {
                 this.numBlocksFlattened++
             }
         }
-        console.log(`${this.numBlocksFlattened} blocks flattened`)
+        t1 = performance.now()
+        // console.log(`${this.numBlocksFlattened} blocks flattened`)
 
+        console.log('process block costs: ', t1 - t0)
+        t0 = performance.now()
         for (const entity of dxf.entities) {
             if (!this._FilterEntity(entity)) {
                 this.numEntitiesFiltered++
@@ -193,14 +208,20 @@ export class DxfScene {
             }
             this._ProcessDxfEntity(entity)
         }
-        console.log(`${this.numEntitiesFiltered} entities filtered`)
+        t1 = performance.now()
+        //console.log(`${this.numEntitiesFiltered} entities filtered`)
 
+        console.log('process entity costs: ', t1 - t0)
+        t0 = performance.now()
         this.scene = this._BuildScene()
 
+        t1 = performance.now()
+        console.log('_BuildScene costs: ', t1 - t0)
         delete this.batches
         delete this.layers
         delete this.blocks
         delete this.textRenderer
+
     }
 
     /** @return False to suppress the specified entity, true to permit rendering. */
@@ -285,53 +306,138 @@ export class DxfScene {
 
     _ProcessDxfEntity(entity, blockCtx = null) {
         let renderEntities
+        let t0, t1;
         switch (entity.type) {
         case "LINE":
+            if(this.costs.line === undefined){
+              this.costs.line = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeLine(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.line += t1 - t0
             break
         case "POLYLINE":
         case "LWPOLYLINE":
+            if(this.costs.polyline === undefined){
+              this.costs.polyline = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposePolyline(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.polyline += t1 - t0
             break
         case "ARC":
+            if(this.costs.arc === undefined){
+              this.costs.arc = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeArc(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.arc += t1 - t0
             break
         case "CIRCLE":
+            if(this.costs.circle === undefined){
+              this.costs.circle = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeCircle(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.circle += t1 - t0
             break
         case "ELLIPSE":
+            if(this.costs.ellipse === undefined){
+              this.costs.ellipse = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeEllipse(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.ellipse += t1 - t0
             break
         case "POINT":
             renderEntities = this._DecomposePoint(entity, blockCtx)
             break
         case "SPLINE":
+            if(this.costs.spline === undefined){
+              this.costs.spline = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeSpline(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.spline += t1 - t0
             break
         case "INSERT":
             /* Works with rendering batches without intermediate entities. */
+            if(this.costs.insert === undefined){
+              this.costs.insert = 0
+            }
+            t0 = performance.now()
             this._ProcessInsert(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.insert += t1 - t0
             return
         case "TEXT":
+            if(this.costs.text === undefined){
+              this.costs.text = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeText(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.text += t1 - t0
             break
         case "MTEXT":
+            if(this.costs.mtext === undefined){
+              this.costs.mtext = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeMText(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.mtext += t1 - t0
             break
         case "3DFACE":
+            if(this.costs.face3d === undefined){
+              this.costs.face3d = 0
+            }
+            t0 = performance.now()
             renderEntities = this._Decompose3DFace(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.face3d += t1 - t0
             break
         case "SOLID":
+            if(this.costs.solid === undefined){
+              this.costs.solid = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeSolid(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.solid += t1 - t0
             break
         case "DIMENSION":
+            if(this.costs.dimension === undefined){
+              this.costs.dimension = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeDimension(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.dimension += t1 - t0
             break
         case "ATTRIB":
+            if(this.costs.attrib === undefined){
+              this.costs.attrib = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeAttribute(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.attrib += t1 - t0
             break
         case "HATCH":
+            if(this.costs.hatch === undefined){
+              this.costs.hatch = 0
+            }
+            t0 = performance.now()
             renderEntities = this._DecomposeHatch(entity, blockCtx)
+            t1 = performance.now()
+            this.costs.hatch += t1 - t0
             break
         default:
             console.log("Unhandled entity type: " + entity.type)

@@ -5,6 +5,7 @@ import {MaterialKey} from "./MaterialKey.js"
 import {ColorCode, DxfScene} from "./DxfScene.js"
 import {OrbitControls} from "./OrbitControls.js"
 import {RBTree} from "./RBTree.js"
+import {encode} from "@msgpack/msgpack"
 
 
 // todo: 应用viewPort中的第一个视角为初始化视角
@@ -128,6 +129,10 @@ export class DxfViewer {
         return Boolean(this.renderer)
     }
 
+
+    GetEncodedOriginScene(){
+      return encode(this.originScene)
+    }
     /**
      * @returns {three.WebGLRenderer | null} Returns the created Three.js renderer.
      */
@@ -196,6 +201,9 @@ export class DxfViewer {
 
         this.worker = new DxfWorker(workerFactory ? workerFactory() : null)
         const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk, preparsed)
+
+        this.originScene = scene
+
         await this.worker.Destroy()
         this.worker = null
         this.parsedDxf = dxf
