@@ -135,7 +135,7 @@ export class DxfViewer {
       for(let key of Object.keys(scene)){
         let value = scene[key]
         if(value.constructor.name === 'ArrayBuffer'){
-          scene1[key] = new Uint8Array(value.data)
+          scene1[key] = new Uint8Array(value)
         }else{
           scene1[key] = value
         }
@@ -190,9 +190,9 @@ export class DxfViewer {
 
 
     async LoadTgs2d({url, onProgress}){
-      const axios = require("axios")
+      const axios = await import("axios")//require("axios")
       
-      let result = await axios.get(url, { 
+      let result = await axios.default.get(url, { 
         responseType: 'arraybuffer',
         onDownloadProgress: (progressEvent) => {
           const total = progressEvent.total;
@@ -208,7 +208,7 @@ export class DxfViewer {
       for(let key of Object.keys(scene1)){
         let value = scene1[key]
         if(value.constructor.name === 'Uint8Array'){
-          scene[key] = value.data.buffer
+          scene[key] = value.buffer
         }else{
           scene[key] = value
         }
@@ -301,7 +301,21 @@ export class DxfViewer {
         this.worker = new DxfWorker(workerFactory ? workerFactory() : null)
         const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk, preparsed)
 
+      /*
+      let scene1 = {}//Object.assign({}, scene)
+      for(let key of Object.keys(scene)){
+        let value = scene[key]
+        if(value.constructor.name === 'ArrayBuffer'){
+          scene1[key] = new Uint8Array(value)
+        }else{
+          scene1[key] = value
+        }
+      }
+      let encoded1 = encode(scene1)
+      let decode1 = decode(encoded1)
 
+      debugger
+      */
 
         this.originScene = scene
 
