@@ -6,8 +6,8 @@ import {ColorCode, DxfScene} from "./DxfScene.js"
 import {OrbitControls} from "./OrbitControls.js"
 import {RBTree} from "./RBTree.js"
 import {encode} from "@msgpack/msgpack"
-import axios from "axios"
 import { decode } from "@msgpack/msgpack"
+const axios = require("axios")
 // todo: 应用viewPort中的第一个视角为初始化视角
 
 /** Level in "message" events. */
