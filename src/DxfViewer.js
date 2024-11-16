@@ -6,8 +6,8 @@ import {ColorCode, DxfScene} from "./DxfScene.js"
 import {OrbitControls} from "./OrbitControls.js"
 import {RBTree} from "./RBTree.js"
 import {encode} from "@msgpack/msgpack"
-
-
+import axios from "axios"
+import { decode } from "@msgpack/msgpack"
 // todo: 应用viewPort中的第一个视角为初始化视角
 
 /** Level in "message" events. */
@@ -131,7 +131,19 @@ export class DxfViewer {
 
 
     GetEncodedOriginScene(){
-      return encode(this.originScene)
+      let scene = this.originScene
+      let scene1 = {}//Object.assign({}, scene)
+      for(let key of Object.keys(scene)){
+        let value = scene[key]
+        if(value.constructor.name === 'ArrayBuffer'){
+          scene1[key] = new Uint8Array(value.data)
+        }else{
+          scene1[key] = value
+        }
+      }
+
+
+      return encode(scene1)
     }
     /**
      * @returns {three.WebGLRenderer | null} Returns the created Three.js renderer.
@@ -176,6 +188,93 @@ export class DxfViewer {
         this.Render()
     }
 
+
+
+    async LoadTgs2d({url, onProgress}){
+      
+      let result = await axios.get(url, { 
+        responseType: 'arraybuffer',
+        onDownloadProgress: (progressEvent) => {
+          const total = progressEvent.total;
+          const current = progressEvent.loaded;
+          if(onProgress){
+            onProgress(Math.round(current/total) * 100);
+          }
+        }
+      })
+
+      let scene1 = decode(result.data)
+      let scene = {}//Object.assign({}, scene)
+      for(let key of Object.keys(scene1)){
+        let value = scene1[key]
+        if(value.constructor.name === 'Uint8Array'){
+          scene[key] = value.data.buffer
+        }else{
+          scene[key] = value
+        }
+      }
+      this.originScene = scene
+
+      
+
+      this.worker = null
+      //this.parsedDxf = dxf
+
+      this.origin = scene.origin
+      this.bounds = scene.bounds
+      this.hasMissingChars = scene.hasMissingChars
+
+      for (const layer of scene.layers) {
+          this.layers.set(layer.name, new Layer(layer.name, layer.displayName, layer.color))
+      }
+      this.defaultLayer = this.layers.get("0") ?? new Layer("0", "0", 0)
+
+      /* Load all blocks on the first pass. */
+      for (const batch of scene.batches) {
+          if (batch.key.blockName !== null &&
+              batch.key.geometryType !== BatchingKey.GeometryType.BLOCK_INSTANCE &&
+              batch.key.geometryType !== BatchingKey.GeometryType.POINT_INSTANCE) {
+
+              let block = this.blocks.get(batch.key.blockName)
+              if (!block) {
+                  block = new Block()
+                  this.blocks.set(batch.key.blockName, block)
+              }
+              block.PushBatch(new Batch(this, scene, batch))
+          }
+      }
+
+      /*console.log(`DXF scene:
+                   ${scene.batches.length} batches,
+                   ${this.layers.size} layers,
+                   ${this.blocks.size} blocks,
+                   vertices ${scene.vertices.byteLength} B,
+                   indices ${scene.indices.byteLength} B
+                   transforms ${scene.transforms.byteLength} B`)*/
+
+      /* Instantiate all entities. */
+      for (const batch of scene.batches) {
+          this._LoadBatch(scene, batch)
+      }
+
+      this._Emit("loaded")
+
+      if (scene.bounds) {
+          this.FitView(scene.bounds.minX - scene.origin.x, scene.bounds.maxX - scene.origin.x,
+                       scene.bounds.minY - scene.origin.y, scene.bounds.maxY - scene.origin.y)
+      } else {
+          this._Message("Empty document", MessageLevel.WARN)
+      }
+
+      if (this.hasMissingChars) {
+          this._Message("Some characters cannot be properly displayed due to missing fonts",
+                        MessageLevel.WARN)
+      }
+
+      this._CreateControls()
+      this.Render()
+    }
+
     /** Load DXF into the viewer. Old content is discarded, state is reset.
      * @param url {string} DXF file URL.
      * @param fonts {?string[]} List of font URLs. Files should have typeface.js format. Fonts are
@@ -201,6 +300,8 @@ export class DxfViewer {
 
         this.worker = new DxfWorker(workerFactory ? workerFactory() : null)
         const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk, preparsed)
+
+
 
         this.originScene = scene
 

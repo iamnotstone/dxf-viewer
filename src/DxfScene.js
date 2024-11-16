@@ -8,7 +8,6 @@ import dimStyleCodes from "./parser/DimStyleCodes.js"
 import { LinearDimension } from "./LinearDimension.js"
 import { HatchCalculator, HatchStyle } from "./HatchCalculator.js"
 import { LookupPattern, Pattern } from "./Pattern.js"
-import {encode} from "@msgpack/msgpack"
 import "./patterns/index.js"
 import earcut from "earcut"
 
