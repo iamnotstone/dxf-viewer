@@ -439,7 +439,7 @@ export class DxfScene {
             this.costs.hatch += t1 - t0
             break
         default:
-            console.log("Unhandled entity type: " + entity.type)
+            //console.log("Unhandled entity type: " + entity.type)
             return
         }
         for (const renderEntity of renderEntities) {
@@ -456,8 +456,8 @@ export class DxfScene {
             this._ProcessPoints(entity, blockCtx)
             break
         case Entity.Type.LINE_SEGMENTS:
-            this._ProcessLineSegments(entity, blockCtx)
-            break
+          this._ProcessLineSegments(entity, blockCtx)
+          break
         case Entity.Type.POLYLINE:
             this._ProcessPolyline(entity, blockCtx)
             break

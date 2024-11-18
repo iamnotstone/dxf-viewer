@@ -208,7 +208,7 @@ export class DxfViewer {
       for(let key of Object.keys(scene1)){
         let value = scene1[key]
         if(value.constructor.name === 'Uint8Array'){
-          scene[key] = value.buffer
+          scene[key] = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
         }else{
           scene[key] = value
         }
@@ -301,7 +301,8 @@ export class DxfViewer {
         this.worker = new DxfWorker(workerFactory ? workerFactory() : null)
         const {scene, dxf} = await this.worker.Load(url, fonts, this.options, progressCbk, preparsed)
 
-      /*
+      
+      /* 
       let scene1 = {}//Object.assign({}, scene)
       for(let key of Object.keys(scene)){
         let value = scene[key]
@@ -312,11 +313,20 @@ export class DxfViewer {
         }
       }
       let encoded1 = encode(scene1)
-      let decode1 = decode(encoded1)
+      scene1 = decode(encoded1)
 
-      debugger
-      */
-
+      scene = {}
+      for(let key of Object.keys(scene1)){
+        let value = scene1[key]
+        if(value.constructor.name === 'Uint8Array'){
+          scene[key] = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+        }else{
+          scene[key] = value
+        }
+      }
+      this.originScene = scene
+       
+      debugger*/
         this.originScene = scene
 
         await this.worker.Destroy()
