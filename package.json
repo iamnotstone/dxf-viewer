@@ -1,6 +1,6 @@
 {
     "name": "iamnotstone-dxf-viewer",
-    "version": "2.0.10",
+    "version": "2.0.11",
     "description": "fork from https://github.com/vagran/dxf-viewer JavaScript DXF file viewer",
     "main": "src/index.js",
     "author": "iamnotstone",
