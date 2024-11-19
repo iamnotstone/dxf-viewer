@@ -197,7 +197,7 @@ export class DxfViewer {
           const total = progressEvent.total;
           const current = progressEvent.loaded;
           if(onProgress){
-            onProgress(Math.round(current/total) * 100, '加载中');
+            onProgress(Math.round(100* current/total), '加载中');
           }
         }
       })
