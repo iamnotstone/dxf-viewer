@@ -8,7 +8,7 @@ import {RBTree} from "./RBTree.js"
 import {encode} from "@msgpack/msgpack"
 import { decode } from "@msgpack/msgpack"
 // todo: 应用viewPort中的第一个视角为初始化视角
-
+import axios from "axios"
 /** Level in "message" events. */
 const MessageLevel = Object.freeze({
     INFO: "info",
@@ -190,9 +190,8 @@ export class DxfViewer {
 
 
     async LoadTgs2d({url, onProgress}){
-      const axios = await import("axios")//require("axios")
       
-      let result = await axios.default.get(url, { 
+      let result = await axios.get(url, { 
         responseType: 'arraybuffer',
         onDownloadProgress: (progressEvent) => {
           const total = progressEvent.total;
