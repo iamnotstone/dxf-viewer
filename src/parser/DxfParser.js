@@ -453,6 +453,14 @@ DxfParser.prototype._parse = function(dxfString) {
                     viewPort.viewTarget = parsePoint();
                     curr = scanner.next();
                     break;
+                case 40:
+                    viewPort.paperWidth = curr.value;
+                    curr = scanner.next();
+                    break;
+                case 41:
+                    viewPort.paperHeight = curr.value;
+                    curr = scanner.next();
+                    break;
                 case 42:
                     viewPort.lensLength = curr.value;
                     curr = scanner.next();

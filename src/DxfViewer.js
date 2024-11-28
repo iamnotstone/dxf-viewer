@@ -258,7 +258,11 @@ export class DxfViewer {
 
       this._Emit("loaded")
 
-      if (scene.bounds) {
+      if(scene.viewPort){
+          this.FitView(scene.viewPort.bounds.minX - scene.origin.x, scene.viewPort.bounds.maxX - scene.origin.x,
+            scene.viewPort.bounds.minY - scene.origin.y, scene.viewPort.bounds.maxY - scene.origin.y)
+      }
+      else if (scene.bounds) {
           this.FitView(scene.bounds.minX - scene.origin.x, scene.bounds.maxX - scene.origin.x,
                        scene.bounds.minY - scene.origin.y, scene.bounds.maxY - scene.origin.y)
       } else {
@@ -371,7 +375,13 @@ export class DxfViewer {
 
         this._Emit("loaded")
 
-        if (scene.bounds) {
+        if(scene.viewPort){
+            this.FitView(scene.viewPort.bounds.minX - scene.origin.x, scene.viewPort.bounds.maxX - scene.origin.x,
+              scene.viewPort.bounds.minY - scene.origin.y, scene.viewPort.bounds.maxY - scene.origin.y)
+            //this.FitView(scene.viewPort.bounds.minX, scene.viewPort.bounds.maxX,
+            //  scene.viewPort.bounds.minY, scene.viewPort.bounds.maxY)
+        }
+        else if (scene.bounds) {
             this.FitView(scene.bounds.minX - scene.origin.x, scene.bounds.maxX - scene.origin.x,
                          scene.bounds.minY - scene.origin.y, scene.bounds.maxY - scene.origin.y)
         } else {

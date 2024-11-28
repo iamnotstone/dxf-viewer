@@ -94,6 +94,14 @@ export class DxfScene {
         /** Indexed by variable name (without leading '$'). */
         this.vars = new Map()
         this.fontStyles = new Map()
+        /**
+         * {
+         *   origin: {x: number, y: number},
+         *   bounds: {minX: number, maxX:number, minY: number, maxY:number}
+         * } 
+         * 
+         */ 
+        this.viewPort = undefined
         /* Indexed by entity handle. */
         this.inserts = new Map()
         this.bounds = null
@@ -110,6 +118,45 @@ export class DxfScene {
      */
     async Build(dxf, fontFetchers) {
         const header = dxf.header || {}
+
+
+        if(dxf.tables){
+          if(dxf.tables.viewPort 
+            && Array.isArray(dxf.tables.viewPort.viewPorts) 
+            && dxf.tables.viewPort.viewPorts.length > 0){
+            let firstViewPort = dxf.tables.viewPort.viewPorts[0]
+            let paperWidth = dxf.tables.viewPort.viewPorts[0].paperWidth
+            let paperHeight = dxf.tables.viewPort.viewPorts[0].paperHeight
+
+            if(firstViewPort.center && typeof paperHeight === 'number' && typeof paperWidth === 'number')
+              this.origin = {x:0, y:0}//firstViewPort.center
+              let center = firstViewPort.center
+              let viewTarget = firstViewPort.viewTarget
+
+              let theOrigin = {
+                x: center.x,
+                y: center.y
+              }
+
+              if(viewTarget){
+
+                theOrigin.x += viewTarget.x
+                theOrigin.y += viewTarget.y
+              }
+
+
+              this.viewPort = {
+                origin: theOrigin,
+                bounds: {
+                  minX: theOrigin.x - paperWidth, 
+                  maxX: theOrigin.x + paperWidth,
+                  minY: theOrigin.y - paperHeight,
+                  maxY: theOrigin.y + paperHeight
+                }
+              }
+          }
+        }
+
 
         for (const [name, value] of Object.entries(header)) {
             if (name.startsWith("$")) {
@@ -213,7 +260,7 @@ export class DxfScene {
         console.log('process entity costs: ', t1 - t0)
         t0 = performance.now()
         this.scene = this._BuildScene()
-
+        this.scene.viewPort = this.viewPort
         t1 = performance.now()
         console.log('_BuildScene costs: ', t1 - t0)
         delete this.batches
